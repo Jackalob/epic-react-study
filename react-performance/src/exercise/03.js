@@ -3,8 +3,8 @@
 
 import * as React from 'react'
 import {useCombobox} from '../use-combobox'
-import {getItems} from '../workerized-filter-cities'
-import {useAsync, useForceRerender} from '../utils'
+import {getItems} from '../filter-cities'
+import { useForceRerender} from '../utils'
 
 function Menu({
   items,
@@ -21,8 +21,8 @@ function Menu({
           getItemProps={getItemProps}
           item={item}
           index={index}
-          selectedItem={selectedItem}
-          highlightedIndex={highlightedIndex}
+          isSelected={selectedItem?.id === item.id}
+          isHighlighted={highlightedIndex === index}
         >
           {item.name}
         </ListItem>
@@ -36,12 +36,10 @@ function ListItem({
   getItemProps,
   item,
   index,
-  selectedItem,
-  highlightedIndex,
+  isSelected,
+  isHighlighted,
   ...props
 }) {
-  const isSelected = selectedItem?.id === item.id
-  const isHighlighted = highlightedIndex === index
   return (
     <li
       {...getItemProps({
@@ -56,29 +54,31 @@ function ListItem({
     />
   )
 }
-ListItem = React.memo(ListItem, (prevProps, nextProps) => {
-  if (prevProps.getItemProps !== nextProps.getItemProps) return false
-  if (prevProps.item !== nextProps.item) return false
-  if (prevProps.index !== nextProps.index) return false
-  if (prevProps.selectedItem !== nextProps.selectedItem) return false
+ListItem = React.memo(ListItem)
+// ListItem = React.memo(ListItem, (prevProps, nextProps) => {
+//   if (prevProps.getItemProps !== nextProps.getItemProps) return false
+//   if (prevProps.item !== nextProps.item) return false
+//   if (prevProps.index !== nextProps.index) return false
+//   if (prevProps.selectedItem !== nextProps.selectedItem) return false
 
-  if (prevProps.highlightedIndex !== nextProps.highlightedIndex) {
-    const wasPrevHighlighted = prevProps.highlightedIndex === prevProps.index
-    const isNowHighlighted = nextProps.highlightedIndex === nextProps.index
-    return wasPrevHighlighted === isNowHighlighted
-  }
+//   if (prevProps.highlightedIndex !== nextProps.highlightedIndex) {
+//     const wasPrevHighlighted = prevProps.highlightedIndex === prevProps.index
+//     const isNowHighlighted = nextProps.highlightedIndex === nextProps.index
+//     return wasPrevHighlighted === isNowHighlighted
+//   }
 
-  return true;
-})
+//   return true;
+// })
 
 function App() {
   const forceRerender = useForceRerender()
   const [inputValue, setInputValue] = React.useState('')
 
-  const {data: allItems, run} = useAsync({data: [], status: 'pending'})
-  React.useEffect(() => {
-    run(getItems(inputValue))
-  }, [inputValue, run])
+  // const {data: allItems, run} = useAsync({data: [], status: 'pending'})
+  const allItems = React.useMemo(() => getItems(inputValue), [inputValue])
+  // React.useEffect(() => {
+  //   run(getItems(inputValue))
+  // }, [inputValue, run])
   const items = allItems.slice(0, 100)
 
   const {
