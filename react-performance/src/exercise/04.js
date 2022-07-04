@@ -45,9 +45,6 @@ function Menu({
             isSelected={selectedItem?.id === item.id}
             isHighlighted={highlightedIndex === index}
             style={getVirtualRowStyles({size, start})}
-            // 🐨 pass a style prop, you can get the inline styles from getVirtualRowStyles()
-            // make sure to pass an object with the size (the height of the row)
-            // and start (where the row starts relative to the scrollTop of its container).
           >
             {item.name}
           </ListItem>
@@ -101,7 +98,7 @@ function App() {
     size: items.length,
     parentRef: listRef,
     estimateSize: React.useCallback(() => 20, []),
-    overscan: 10,
+    overscan: 3,
   })
   const {
     selectedItem,
