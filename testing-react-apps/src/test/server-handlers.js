@@ -10,14 +10,14 @@ const handlers = [
         return res(
           ctx.delay(delay),
           ctx.status(400),
-          ctx.json({message: 'password required'}),
+          ctx.json({message: 'password is strongly required'}),
         )
       }
       if (!req.body.username) {
         return res(
           ctx.delay(delay),
           ctx.status(400),
-          ctx.json({message: 'username required'}),
+          ctx.json({message: 'username is strongly required'}),
         )
       }
       return res(ctx.delay(delay), ctx.json({username: req.body.username}))
