@@ -5,6 +5,7 @@ import * as React from 'react'
 import {render, screen, waitForElementToBeRemoved} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {build, fake} from '@jackfranklin/test-data-bot'
+import {handlers} from 'test/server-handlers'
 import {rest} from 'msw'
 import {setupServer} from 'msw/lib/node'
 
@@ -17,14 +18,11 @@ const buildLoginForm = build({
   },
 })
 
-const server = setupServer(
-  rest.post('https://auth-provider.example.com/api/login', (req, res, ctx) => {
-    return res(ctx.json({username: req.body.username}))
-  }),
-)
+const server = setupServer(...handlers)
 
 beforeAll(() => server.listen())
 afterAll(() => server.close())
+afterEach(() => server.resetHandlers())
 
 test(`logging in displays the user's username`, async () => {
   render(<Login />)
@@ -35,15 +33,34 @@ test(`logging in displays the user's username`, async () => {
   await userEvent.click(screen.getByRole('button', {name: /submit/i}))
 
   await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
-  
   expect(screen.getByText(username)).toBeInTheDocument()
+})
 
-  // as soon as the user hits submit, we render a spinner to the screen. That
-  // spinner has an aria-label of "loading" for accessibility purposes, so
-  // 🐨 wait for the loading spinner to be removed using waitForElementToBeRemoved
-  // 📜 https://testing-library.com/docs/dom-testing-library/api-async#waitforelementtoberemoved
+test(`omitting the password results in an error`, async () => {
+  render(<Login />)
+  const {username} = buildLoginForm()
+  await userEvent.type(screen.getByLabelText(/username/i), username)
+  await userEvent.click(screen.getByRole('button', {name: /submit/i}))
+  await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
 
-  // once the login is successful, then the loading spinner disappears and
-  // we render the username.
-  // 🐨 assert that the username is on the screen
+  expect(screen.getByRole(/alert/i).textContent).toMatchInlineSnapshot(
+    `"password is strongly required"`,
+  )
+})
+
+test(`unknown server error display the error messages`, async () => {
+  const testErrorMessage = 'unknown server error'
+
+  server.use(
+    rest.post(
+      'https://auth-provider.example.com/api/login',
+      async (req, res, ctx) => {
+        return res(ctx.status(500), ctx.json({message: testErrorMessage}))
+      },
+    ),
+  )
+  render(<Login />)
+  await userEvent.click(screen.getByRole('button', {name: /submit/i}))
+  await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
+  expect(screen.getByRole(/alert/i)).toHaveTextContent(testErrorMessage)
 })
