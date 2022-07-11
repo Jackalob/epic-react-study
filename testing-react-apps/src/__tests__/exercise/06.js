@@ -2,26 +2,11 @@
 // http://localhost:3000/location
 
 import * as React from 'react'
-import {
-  render,
-  screen,
-  act,
-  waitForElementToBeRemoved,
-} from '@testing-library/react'
+import {render, screen, act} from '@testing-library/react'
+import {useCurrentPosition} from 'react-use-geolocation'
 import Location from '../../examples/location'
 
-window.navigator.geolocation = {
-  getCurrentPosition: jest.fn(),
-}
-
-function deferred() {
-  let resolve, reject
-  const promise = new Promise((res, rej) => {
-    resolve = res
-    reject = rej
-  })
-  return {promise, resolve, reject}
-}
+jest.mock('react-use-geolocation')
 
 test('displays the users current location', async () => {
   const fakePosition = {
@@ -31,22 +16,21 @@ test('displays the users current location', async () => {
     },
   }
 
-  const {promise, resolve} = deferred()
+  let setPosition
+  function useMockCurrentPosition() {
+    const [state, setState] = React.useState([])
+    setPosition = setState
+    return state
+  }
 
-  window.navigator.geolocation.getCurrentPosition.mockImplementation(cb => {
-    promise.then(() => cb(fakePosition))
-  })
+  useCurrentPosition.mockImplementation(useMockCurrentPosition)
 
   render(<Location />)
-  // await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
   expect(screen.queryByLabelText(/loading/i)).toBeInTheDocument()
 
-  await act(async () => {
-    resolve()
-    await promise
+  act(() => {
+    setPosition([fakePosition])
   })
-
-  screen.debug()
 
   expect(screen.queryByLabelText(/loading/i)).not.toBeInTheDocument()
   expect(screen.getByText(/latitude/i)).toHaveTextContent(
@@ -55,6 +39,31 @@ test('displays the users current location', async () => {
   expect(screen.getByText(/longitude/i)).toHaveTextContent(
     `Longitude: ${fakePosition.coords.longitude}`,
   )
+})
+
+test('displays error message when geolocation is not supported', async () => {
+  const fakeError = new Error(
+    'Geolocation is not supported or permission denied',
+  )
+  let setPosition
+
+  function useMockCurrentPositionFailed() {
+    const [state, setState] = React.useState([])
+    setPosition = setState
+    return state
+  }
+
+  useCurrentPosition.mockImplementation(useMockCurrentPositionFailed)
+
+  render(<Location />)
+  expect(screen.getByLabelText(/loading/i)).toBeInTheDocument()
+
+  act(() => {
+    setPosition([null, fakeError])
+  })
+
+  expect(screen.queryByLabelText(/loading/i)).not.toBeInTheDocument()
+  expect(screen.getByRole(/alert/i)).toHaveTextContent(fakeError.message)
 })
 
 /*
