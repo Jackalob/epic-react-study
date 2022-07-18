@@ -18,10 +18,10 @@ const NavBar = React.lazy(() =>
   import('../suspense-list/nav-bar').then(delay(500)),
 )
 const LeftNav = React.lazy(() =>
-  import('../suspense-list/left-nav').then(delay(2000)),
+  import('../suspense-list/left-nav').then(delay(1500)),
 )
 const MainContent = React.lazy(() =>
-  import('../suspense-list/main-content').then(delay(1500)),
+  import('../suspense-list/main-content').then(delay(3000)),
 )
 const RightNav = React.lazy(() =>
   import('../suspense-list/right-nav').then(delay(1000)),
@@ -71,20 +71,26 @@ function App() {
           onReset={handleReset}
           resetKeys={[pokemonResource]}
         >
-          <React.Suspense fallback={fallback}>
-            <NavBar pokemonResource={pokemonResource} />
-          </React.Suspense>
-          <div className={cn.mainContentArea}>
+          <React.SuspenseList revealOrder="forwards">
             <React.Suspense fallback={fallback}>
-              <LeftNav />
+              <NavBar pokemonResource={pokemonResource} />
             </React.Suspense>
-            <React.Suspense fallback={fallback}>
-              <MainContent pokemonResource={pokemonResource} />
-            </React.Suspense>
-            <React.Suspense fallback={fallback}>
-              <RightNav pokemonResource={pokemonResource} />
-            </React.Suspense>
-          </div>
+            <div className={cn.mainContentArea}>
+              <React.SuspenseList revealOrder="forwards" tail="collapsed">
+                <React.Suspense fallback={fallback}>
+                  <LeftNav />
+                </React.Suspense>
+                <React.SuspenseList revealOrder="forwards">
+                  <React.Suspense fallback={fallback}>
+                    <MainContent pokemonResource={pokemonResource} />
+                  </React.Suspense>
+                  <React.Suspense fallback={fallback}>
+                    <RightNav pokemonResource={pokemonResource} />
+                  </React.Suspense>
+                </React.SuspenseList>
+              </React.SuspenseList>
+            </div>
+          </React.SuspenseList>
         </PokemonErrorBoundary>
       </div>
     </div>
